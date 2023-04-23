@@ -15,11 +15,38 @@ def createUser(claims):
     entity.update({
         'email': claims['email'],
         'name': claims['name'],
-        'post': [],
+        'post_list': [],
         'followers': [],
         'following': []
     })
     datastore_client.put(entity)
+
+
+def retrieveUserInfo(claims):
+    entity_key = datastore_client.key('UserInfo', claims['email'])
+    entity = datastore_client.get(entity_key)
+    return entity
+
+
+def createPosts(claims):
+    id = random.getrandbits(63)
+    entity_key = datastore_client.key('Post', id)
+    entity = datastore.Entity(key=entity_key)
+    entity.update({
+
+    })
+    datastore_client.put(entity)
+    return id
+
+
+def retrievePosts(user_info):
+    # make key objects out of all the keys and retrieve them
+    post_ids = user_info['post_list']
+    post_keys = []
+    for i in range(len(post_ids)):
+        post_keys.append(datastore_client.key('Post', post_ids[i]))
+    post_list = datastore_client.get_multi(post_keys)
+    return post_list
 
 
 @app.route('/')
@@ -28,10 +55,17 @@ def root():
     error_message = None
     claims = None
     times = None
+    post = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token,
                                                                   firebase_request_adapter)
+            user_info = retrieveUserInfo(claims)
+            if user_info is None:
+                createUserInfo(claims)
+                user_info = retrieveUserInfo(claims)
+
+            post = retrievePosts(user_info)
 
         except ValueError as exc:
             error_message = str(exc)
