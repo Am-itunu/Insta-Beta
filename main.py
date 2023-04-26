@@ -16,8 +16,8 @@ def createUser(claims):
         'email': claims['email'],
         'name': claims['name'],
         'post_list': [],
-        'followers': [],
-        'following': []
+        'follower_list': [],
+        'following_list': []
     })
     datastore_client.put(entity)
 
@@ -47,6 +47,54 @@ def retrievePosts(user_info):
         post_keys.append(datastore_client.key('Post', post_ids[i]))
     post_list = datastore_client.get_multi(post_keys)
     return post_list
+
+
+def retrieveFollowers(user):
+    entity_key = datastore_client.key('UserInfo', follower)
+    entity = datastore_client.key(entity_key)
+    return entity
+
+
+def addToFollowing(user_info):
+    following_id = user_info['following_list']
+    following_keys = []
+    for i in range(following_id):
+        following_keys.append(datastore_client.key('UserInfo', following_id[i]))
+    following_list = datastore_client.get_multi(following_keys)
+    return following_list
+
+
+def addToFollowers(user):
+    follower_id = user['follower_list']
+    follower_keys = []
+    for i in range(follower_id):
+        follower_keys.append(datastore_client.key('UserInfo', follower_id[i]))
+    follower_list = datastore_client.get_multi(follower_keys)
+    return follower_list
+
+
+@app.route('/follow/<username>', method=['POST'])
+def Follow(username):
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            user = User.query.filter_by(username=username).first()  # come back and check
+            user_info = retrieveUserInfo(claims)
+            addToFollowing(user_info)
+            addToFollowers(user)
+
+        except ValueError as exc:
+            error_message = str(exc)
+    return redirect('/')  # fix later
+
+
+def retrieveFollowing(user_info):
+    entity_key = datastore_client.key('UserInfo', following)
+    entity = datastore_client.key(entity_key)
+    return entity
 
 
 @app.route('/')
