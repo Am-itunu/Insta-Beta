@@ -8,25 +8,23 @@
  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
- <h1>Instagram </h1>
+ <h1>Create Profile</h1>
  <div id="firebase-auth-container"></div>
+     <div>
+       <h1></h1>
+       {% if user_data %}
+         <form action="/init" method="post">
+           Username:<input type="text" value="@username" name="profileName_update"/><br/>
+           Profile Name:<input type="text" value="" name="username_update"/><br/>
+           <br/>
+           <input type="submit" value="Create" name="submit_button">
+         </form>
+       {% elif error_message %}
+                <p>Error Message: {{ error_message }}</p>
+       {% endif %}
+     </div>
     <button id="sign-out" hidden="true">Sign out</button>
-    <div id="login-info" hidden="true">
-      <h2>Login Info</h2>
-      {% if user_data %}
-        <p>Name:  {{ user_data['name'] }}<br/><br>
-              Email: {{ user_data['email'] }}
-          </p>
-          <p>UserName: @{{ user_info['username'] }}<br><br><
-
-
-      {% elif error_message %}
-         <p>Error Message: {{ error_message }}</p>
-      {% endif %}
-    </div>
-
  <script src="https://www.gstatic.com/firebasejs/7.14.5/firebase-app.js"></script>
  <script src="https://www.gstatic.com/firebasejs/7.8.0/firebase-auth.js"></script>
  <script src="{{ url_for('static', filename='app-setup.js') }}"></script>
 </body>
-</html>

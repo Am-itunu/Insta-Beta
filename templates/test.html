@@ -1,25 +1,54 @@
 <!doctype html>
 <html>
 <head>
- <title>Datastore and Firebase Auth Example</title>
+ <title>INSTAGRAM</title>
  <script src="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js"></script>
  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css" />
  <script src="{{ url_for('static', filename='script.js') }}"></script>
  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
- <h1>Instagram </h1>
+ <h1>Profile </h1>
  <div id="firebase-auth-container"></div>
     <button id="sign-out" hidden="true">Sign out</button>
     <div id="login-info" hidden="true">
       <h2>Login Info</h2>
       {% if user_data %}
-        <p>Name:  {{ user_data['name'] }}<br/><br>
+        <dl>
+          <p>Name:  {{ user_data['name'] }}<br/><br>
               Email: {{ user_data['email'] }}
           </p>
-          <p>UserName: @{{ user_info['username'] }}<br><br><
+          <p>UserName: @{{ user_info['username'] }}<br><br>
+            <a href="following" methods="get">Following: {{ following }} </a><br/>
+
+              <a href="follower" methods="get">Followers: {{follower}}</a>
+
+          </p>
+
+            <form>
+                <h3>Add Post</h3>
+                <hr/>
+                <div>
+                    <form action="/upload_file" method="post" enctype="multipart/form-data">
+                        <input type="text" placeholder="Post" ><br/>
+                        Upload File: <input type="file" name="file_name" /><input type="submit"/>
+                    </form>
+
+                </div>
 
 
+            </form>
+
+        </dl>
+
+
+
+        <h1>list of files</h1><br/>
+        {% for i in file_list %}
+            <form action="/download_file/{{ i.name }}" method="post">
+                {{ i.name }}<input type="submit"/><br/>
+            </form>
+        {% endfor %}
       {% elif error_message %}
          <p>Error Message: {{ error_message }}</p>
       {% endif %}

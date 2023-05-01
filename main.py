@@ -1,20 +1,26 @@
-import datetime
-from google.cloud import datastore
+import random
+
+from google.cloud import datastore, storage
 import google.oauth2.id_token
 from flask import Flask, render_template, request
 from google.auth.transport import requests
+from werkzeug.utils import redirect
+
+import local_constants
 
 app = Flask(__name__)
 firebase_request_adapter = requests.Request()
 datastore_client = datastore.Client()
 
 
-def createUser(claims):
+def createUserInfo(claims):
     entity_key = datastore_client.key('UserInfo', claims['email'])
     entity = datastore.Entity(key=entity_key)
     entity.update({
         'email': claims['email'],
         'name': claims['name'],
+        'username': 'default',
+        'profileName': '',
         'post_list': [],
         'follower_list': [],
         'following_list': []
@@ -28,12 +34,30 @@ def retrieveUserInfo(claims):
     return entity
 
 
-def createPosts(claims):
+def createUsername(claims, username, profileName):
+    entity_key = datastore_client.key('UserInfo', claims['email'])
+    entity = datastore_client.get(entity_key)
+    entity.update({
+        'username': username,
+        'profileName': profileName,
+    })
+    datastore_client.put(entity)
+
+
+def retrieveUsername(claims):
+    entity_key = datastore_client.key('UserInfo', claims['email'])
+    entity = datastore_client.get(entity_key)
+    username = entity['username']
+    return username
+
+
+def createPosts(claims, image, comments):
     id = random.getrandbits(63)
     entity_key = datastore_client.key('Post', id)
     entity = datastore.Entity(key=entity_key)
     entity.update({
-
+        'image': image,
+        'comments': comments
     })
     datastore_client.put(entity)
     return id
@@ -49,10 +73,16 @@ def retrievePosts(user_info):
     return post_list
 
 
-def retrieveFollowers(user):
-    entity_key = datastore_client.key('UserInfo', follower)
-    entity = datastore_client.key(entity_key)
-    return entity
+def retrieveFollowers(user_info):
+    follower = user_info['follower_list']
+    follower_list = len(follower)
+    return follower_list
+
+
+def retrieveFollowing(user_info):
+    following = user_info['following_list']
+    following_list = len(following)
+    return following_list
 
 
 def addToFollowing(user_info):
@@ -73,7 +103,44 @@ def addToFollowers(user):
     return follower_list
 
 
-@app.route('/follow/<username>', method=['POST'])
+@app.route('/follower', methods=['GET', 'POST'])
+def follower():
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    cal_info = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            user_info = retrieveUserInfo(claims)
+            if request.method == 'GET':
+                return render_template("/follower.html", user_data=claims)
+
+        except ValueError as exc:
+            error_message = str(exc)
+    return redirect('/')
+
+
+@app.route('/following', methods=['GET', 'POST'])
+def following():
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    cal_info = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            user_info = retrieveUserInfo(claims)
+            if request.method == 'GET':
+                return render_template("/following.html", user_data=claims)
+
+        except ValueError as exc:
+            error_message = str(exc)
+    return redirect('/')
+
+
+
+@app.route('/follow/<username>', methods=['POST'])
 def Follow(username):
     id_token = request.cookies.get("token")
     claims = None
@@ -81,8 +148,13 @@ def Follow(username):
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-            user = User.query.filter_by(username=username).first()  # come back and check
+
             user_info = retrieveUserInfo(claims)
+            # user = request  # User.query.filter_by(username=username).first()  # come back and check
+            query = datastore_client.query(kind='UserInfo')
+            query.add_filter('username', '=', username)
+            user = list(query.fetch)
+
             addToFollowing(user_info)
             addToFollowers(user)
 
@@ -91,10 +163,94 @@ def Follow(username):
     return redirect('/')  # fix later
 
 
-def retrieveFollowing(user_info):
-    entity_key = datastore_client.key('UserInfo', following)
-    entity = datastore_client.key(entity_key)
-    return entity
+
+
+
+# uploads
+def blobList(prefix):
+    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+
+    return storage_client.list_blobs(local_constants.PROJECT_STORAGE_BUCKET, prefix=prefix)
+
+
+def addDirectory(directory_name):
+    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+    blob = bucket.blob(directory_name)
+    blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
+
+
+def addFile(file):
+    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+    blob = bucket.blob(file.filename)
+    blob.upload_from_file(file)
+
+
+def downloadBlob(filename):
+    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+    blob = bucket.blob(filename)
+    return blob.download_as_bytes()
+
+
+@app.route('/upload_file', methods=['post'])
+def uploadFileHandler():
+    id_token = request.cookies.get("token")
+    error_message = None
+    claims = None
+    times = None
+    user_info = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token,
+                                                                  firebase_request_adapter)
+            file = request.files['file_name']
+            if len(file.filename) < 4:
+                print('The filename is too short.')
+            else:
+                extension = file.filename[-4:].lower()
+                if extension == '.jpg' or extension == '.png':
+                    user_info = retrieveUserInfo(claims)
+                    addFile(file)
+                else:
+                    print('the file has an invalid extension')
+                    return redirect('/')
+
+        except ValueError as exc:
+            error_message = str(exc)
+    return redirect('/')
+
+
+@app.route('/init', methods=['GET', 'POST'])
+def initialUser():
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    error_message = None
+    results = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+
+            if request.method == 'GET':
+                render_template('/init.html', user_data=claims)
+
+            if request.method == 'POST':
+                profileName = request.form['profileName_update']
+                username = request.form['username_update']
+                query = datastore_client.query(kind='UserInfo')
+                query.add_filter('username', '=', username)
+                results = list(query.fetch())
+
+                if len(results) > 0:
+                    redirect('/init')
+                else:
+                    createUsername(claims, profileName, username)
+                    redirect('/index.html')
+        except ValueError as exc:
+            error_message = str(exc)
+    return redirect('/')
 
 
 @app.route('/')
@@ -102,22 +258,42 @@ def root():
     id_token = request.cookies.get("token")
     error_message = None
     claims = None
-    times = None
     post = None
+    user_info = None
+    username = None
+    profileName = None
+    file_list = []
+    directory_list = []
+    following = None
+    follower = None
+
     if id_token:
         try:
-            claims = google.oauth2.id_token.verify_firebase_token(id_token,
-                                                                  firebase_request_adapter)
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
             user_info = retrieveUserInfo(claims)
             if user_info is None:
                 createUserInfo(claims)
                 user_info = retrieveUserInfo(claims)
+            username = retrieveUsername(claims)
+            if username == 'default':
+                return redirect('/init')
 
-            post = retrievePosts(user_info)
+            blob_list = blobList(None)
+            for i in blob_list:
+                if i.name[len(i.name) - 1] == '/':
+                    directory_list.append(i)
+                else:
+                    file_list.append(i)
+
+            # post = retrievePosts(user_info)
+            following = retrieveFollowing(user_info)
+            follower = retrieveFollowers(user_info)
 
         except ValueError as exc:
             error_message = str(exc)
-    return render_template('index.html', user_data=claims, times=times, error_message=error_message)
+    return render_template('test.html', user_data=claims, error_message=error_message, post=post,
+                           user_info=user_info, username=username, file_list=file_list, directory_list=directory_list,
+                           following=following, follower=follower)
 
 
 if __name__ == '__main__':
