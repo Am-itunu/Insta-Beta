@@ -8,24 +8,25 @@
  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
- <h1>Instagram </h1>
+ <h1>Profile </h1>
  <div id="firebase-auth-container"></div>
     <button id="sign-out" hidden="true">Sign out</button>
     <div id="login-info" hidden="true">
       <h2>Login Info</h2>
       {% if user_data %}
-        <p>Name:  {{ user_data['name'] }}<br/><br>
-              Email: {{ user_data['email'] }}<br/>
-            UserName: @{{ user_info['username'] }}<br><br>
-            ProfileName: <br><br>
+          <p>Name:  {{ user_data['name'] }}<br/><br>
+              Email: {{ user_data['email'] }}
           </p>
-        <a href="following" methods="get">Following: {{ following }} </a><br/>
-
-        <a href="follower" methods="get">Followers: {{follower}}</a><br/><br/>
-        <button> Follow</button>
-        <button>Unfollow</button>
-
-
+            {% if users %}
+              <h1>Search results:</h1>
+              <ul>
+                {% for user in users %}
+                  <li>{{ user['username'] }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <h1>No results found.</h1>
+            {% endif %}
 
 
       {% elif error_message %}

@@ -5,15 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="13bca88d-2cef-4e95-a253-105522f66c82" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/templates/follower.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/following.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/init.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/test.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/search.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/user_page.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements - Copy.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/script.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/script.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/follower.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/follower.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/following.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/following.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/test.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/test.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,7 +101,14 @@
       <option name="project" value="LOCAL" />
       <updated>1682526339959</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="created link that moves to followers page, initialised first time login.">
+      <created>1682964341223</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1682964341223</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -132,7 +138,8 @@
     <MESSAGE value="initial message" />
     <MESSAGE value="crfeated post models" />
     <MESSAGE value="created functions to map followers and following listss" />
-    <option name="LAST_COMMIT_MESSAGE" value="created functions to map followers and following listss" />
+    <MESSAGE value="created link that moves to followers page, initialised first time login." />
+    <option name="LAST_COMMIT_MESSAGE" value="created link that moves to followers page, initialised first time login." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -144,7 +151,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/main.py</url>
-          <line>242</line>
+          <line>264</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>

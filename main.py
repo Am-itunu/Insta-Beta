@@ -19,7 +19,7 @@ def createUserInfo(claims):
     entity.update({
         'email': claims['email'],
         'name': claims['name'],
-        'username': 'default',
+        'username': '',
         'profileName': '',
         'post_list': [],
         'follower_list': [],
@@ -108,7 +108,6 @@ def follower():
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
-    cal_info = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
@@ -126,7 +125,6 @@ def following():
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
-    cal_info = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
@@ -137,7 +135,6 @@ def following():
         except ValueError as exc:
             error_message = str(exc)
     return redirect('/')
-
 
 
 @app.route('/follow/<username>', methods=['POST'])
@@ -163,7 +160,32 @@ def Follow(username):
     return redirect('/')  # fix later
 
 
+def getUsers(username):
+    query = datastore_client.query(kind='UserInfo')
+    query.add_filter('username', '=', username)
+    users = list(query.fetch())
+    return users
 
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+
+            user_info = retrieveUserInfo(claims)
+
+            if request.method == 'POST':
+                username = request.form['username']
+                users = getUsers(username)
+                return render_template('search.html', users=users, user_data=claims)
+
+        except ValueError as exc:
+            error_message = str(exc)
+    return render_template('test.html')
 
 
 # uploads

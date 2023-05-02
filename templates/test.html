@@ -14,14 +14,20 @@
     <div id="login-info" hidden="true">
       <h2>Login Info</h2>
       {% if user_data %}
-        <dl>
+
+        <form method="POST" action="{{ url_for('search') }}">
+            <input type="text" name="username" placeholder="Search for usernames...">
+            <button type="submit">Search</button>
+        </form>
           <p>Name:  {{ user_data['name'] }}<br/><br>
               Email: {{ user_data['email'] }}
           </p>
           <p>UserName: @{{ user_info['username'] }}<br><br>
             <a href="following" methods="get">Following: {{ following }} </a><br/>
+              <a href="follower" methods="get">Followers: {{follower}}</a><br><br/>
+              <button> Follow</button>
+            <button>Unfollow</button>
 
-              <a href="follower" methods="get">Followers: {{follower}}</a>
 
           </p>
 
@@ -38,8 +44,6 @@
 
 
             </form>
-
-        </dl>
 
 
 
