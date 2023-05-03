@@ -3,7 +3,7 @@ import random
 from google.cloud import datastore, storage
 import google.oauth2.id_token
 from flask import Flask, render_template, request
-from google.auth.transport import requests
+from google.auth.transport import requests, Response
 from werkzeug.utils import redirect
 
 import local_constants
@@ -48,6 +48,8 @@ def retrieveUsername(claims):
     entity_key = datastore_client.key('UserInfo', claims['email'])
     entity = datastore_client.get(entity_key)
     username = entity['username']
+    # if username == '':
+    #     username = None
     return username
 
 
@@ -167,6 +169,14 @@ def getUsers(username):
     return users
 
 
+def getProfiles(profile_Name):
+    query = datastore_client.query(kind='UserInfo')
+    query.add_filter('profileName', '>=', profile_Name)
+    query.add_filter('profileName', '<', profile_Name + '\ufffd')
+    users = list(query.fetch())
+    return users
+
+
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     id_token = request.cookies.get("token")
@@ -179,8 +189,8 @@ def search():
             user_info = retrieveUserInfo(claims)
 
             if request.method == 'POST':
-                username = request.form['username']
-                users = getUsers(username)
+                profile_Name = request.form['profileName']
+                users = getProfiles(profile_Name)
                 return render_template('search.html', users=users, user_data=claims)
 
         except ValueError as exc:
@@ -244,6 +254,23 @@ def uploadFileHandler():
     return redirect('/')
 
 
+@app.route('/download_file/<string:filename>', methods=['POST'])
+def downloadFile(filename):
+    id_token = request.cookies.get("token")
+    error_message = None
+    claims = None
+    times = None
+    user_info = None
+    file_bytes = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+        except ValueError as exc:
+            error_message = str(exc)
+
+    return Response(downloadBlob(filename), mimetype='application/octet-stream')
+
+
 @app.route('/init', methods=['GET', 'POST'])
 def initialUser():
     id_token = request.cookies.get("token")
@@ -254,9 +281,10 @@ def initialUser():
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            user_info=retrieveUserInfo(claims)
 
-            if request.method == 'GET':
-                render_template('/init.html', user_data=claims)
+            # if request.method == 'GET':
+            #     render_template('/init.html', user_data=claims)
 
             if request.method == 'POST':
                 profileName = request.form['profileName_update']
@@ -269,10 +297,10 @@ def initialUser():
                     redirect('/init')
                 else:
                     createUsername(claims, profileName, username)
-                    redirect('/index.html')
+                    return render_template('/test.html', user_data=claims, user_info=user_info)
         except ValueError as exc:
             error_message = str(exc)
-    return redirect('/')
+    return render_template('/init.html', user_data=claims)
 
 
 @app.route('/')
@@ -286,8 +314,8 @@ def root():
     profileName = None
     file_list = []
     directory_list = []
-    following = None
-    follower = None
+    following_no = None
+    follower_no = None
 
     if id_token:
         try:
@@ -297,7 +325,7 @@ def root():
                 createUserInfo(claims)
                 user_info = retrieveUserInfo(claims)
             username = retrieveUsername(claims)
-            if username == 'default':
+            if username == "":
                 return redirect('/init')
 
             blob_list = blobList(None)
@@ -308,14 +336,14 @@ def root():
                     file_list.append(i)
 
             # post = retrievePosts(user_info)
-            following = retrieveFollowing(user_info)
-            follower = retrieveFollowers(user_info)
+            following_no = retrieveFollowing(user_info)
+            follower_no = retrieveFollowers(user_info)
 
         except ValueError as exc:
             error_message = str(exc)
     return render_template('test.html', user_data=claims, error_message=error_message, post=post,
                            user_info=user_info, username=username, file_list=file_list, directory_list=directory_list,
-                           following=following, follower=follower)
+                           following=following_no, follower=follower_no)
 
 
 if __name__ == '__main__':

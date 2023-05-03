@@ -16,15 +16,15 @@
       {% if user_data %}
 
         <form method="POST" action="{{ url_for('search') }}">
-            <input type="text" name="username" placeholder="Search for usernames...">
+            <input type="text" name="profileName" placeholder="Search for usernames...">
             <button type="submit">Search</button>
         </form>
           <p>Name:  {{ user_data['name'] }}<br/><br>
               Email: {{ user_data['email'] }}
           </p>
           <p>UserName: @{{ user_info['username'] }}<br><br>
-            <a href="following" methods="get">Following: {{ following }} </a><br/>
-              <a href="follower" methods="get">Followers: {{follower}}</a><br><br/>
+            <a href="following" methods="get">Following: {{ following_no }} </a><br/>
+              <a href="follower" methods="get">Followers: {{follower_no}}</a><br><br/>
               <button> Follow</button>
             <button>Unfollow</button>
 
@@ -49,6 +49,10 @@
 
         <h1>list of files</h1><br/>
         {% for i in file_list %}
+            <div action="/download_file/{{ i.name }}" method="post">
+                <img src="https://storage.googleapis.com/first-project-378216.appspot.com/{{ i.name }}" alt="Image description">
+
+            </div>
             <form action="/download_file/{{ i.name }}" method="post">
                 {{ i.name }}<input type="submit"/><br/>
             </form>
