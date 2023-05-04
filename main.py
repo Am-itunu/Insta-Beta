@@ -4,6 +4,7 @@ from google.cloud import datastore, storage
 import google.oauth2.id_token
 from flask import Flask, render_template, request
 from google.auth.transport import requests, Response
+from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
 
 import local_constants
@@ -198,6 +199,26 @@ def search():
     return render_template('test.html')
 
 
+@app.route('/user_page/<username>')
+def searchUser(username):
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    user = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+
+            user_info = retrieveUserInfo(claims)
+
+            user = getUsers(username)
+            if not user:
+                abort(404)
+        except ValueError as exc:
+            error_message = str(exc)
+    return render_template('user_page.html', user=user, user_data=claims)
+
+
 # uploads
 def blobList(prefix):
     storage_client = storage.Client(project=local_constants.PROJECT_NAME)
@@ -343,7 +364,7 @@ def root():
             error_message = str(exc)
     return render_template('test.html', user_data=claims, error_message=error_message, post=post,
                            user_info=user_info, username=username, file_list=file_list, directory_list=directory_list,
-                           following=following_no, follower=follower_no)
+                           following_no=following_no, follower_no=follower_no)
 
 
 if __name__ == '__main__':
