@@ -19,7 +19,6 @@ def createUserInfo(claims):
     entity = datastore.Entity(key=entity_key)
     entity.update({
         'email': claims['email'],
-        'name': claims['name'],
         'username': '',
         'profileName': '',
         'post_list': [],
@@ -54,16 +53,24 @@ def retrieveUsername(claims):
     return username
 
 
-def createPosts(claims, image, comments):
-    id = random.getrandbits(63)
-    entity_key = datastore_client.key('Post', id)
+def createPosts(claims, image_file, caption):
+    post_id = random.getrandbits(63)
+    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+    blob = bucket.blob(image_file.filename)
+    blob.upload_from_file(image_file)
+    image_url = blob.public_url
+
+    entity_key = datastore_client.key('Post', post_id)
     entity = datastore.Entity(key=entity_key)
     entity.update({
-        'image': image,
-        'comments': comments
+        'image': image_url,
+        'caption': caption,
+        'comments': []
+
     })
     datastore_client.put(entity)
-    return id
+    return post_id
 
 
 def retrievePosts(user_info):
@@ -74,6 +81,15 @@ def retrievePosts(user_info):
         post_keys.append(datastore_client.key('Post', post_ids[i]))
     post_list = datastore_client.get_multi(post_keys)
     return post_list
+
+
+def addPostToUser(user_info, post_id):
+    post_key = user_info['post_list']
+    post_key.append(post_id)
+    user_info.update({
+        'post_list': post_key
+    })
+    datastore_client.put(user_info)
 
 
 def retrieveFollowers(user_info):
@@ -258,14 +274,16 @@ def uploadFileHandler():
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token,
                                                                   firebase_request_adapter)
-            file = request.files['file_name']
-            if len(file.filename) < 4:
+            image_file = request.files['file_name']
+            caption = request.form['caption_update']
+            if len(image_file.filename) < 4:
                 print('The filename is too short.')
             else:
-                extension = file.filename[-4:].lower()
+                extension = image_file.filename[-4:].lower()
                 if extension == '.jpg' or extension == '.png':
                     user_info = retrieveUserInfo(claims)
-                    addFile(file)
+                    post_id = createPosts(claims, image_file, caption)
+                    addPostToUser(user_info, post_id)
                 else:
                     print('the file has an invalid extension')
                     return redirect('/')
@@ -317,7 +335,7 @@ def initialUser():
                 if len(results) > 0:
                     redirect('/init')
                 else:
-                    createUsername(claims, profileName, username)
+                    createUsername(claims, username, profileName)
                     return render_template('/test.html', user_data=claims, user_info=user_info)
         except ValueError as exc:
             error_message = str(exc)
@@ -356,12 +374,13 @@ def root():
                 else:
                     file_list.append(i)
 
-            # post = retrievePosts(user_info)
+            post = retrievePosts(user_info)
             following_no = retrieveFollowing(user_info)
             follower_no = retrieveFollowers(user_info)
-
+            print(post)
         except ValueError as exc:
             error_message = str(exc)
+            print(error_message)
     return render_template('test.html', user_data=claims, error_message=error_message, post=post,
                            user_info=user_info, username=username, file_list=file_list, directory_list=directory_list,
                            following_no=following_no, follower_no=follower_no)
