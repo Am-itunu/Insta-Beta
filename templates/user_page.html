@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
- <title>{{ user['username'] }} INSTAGRAM</title>
+ <title>INSTAGRAM</title>
  <script src="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js"></script>
  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css" />
  <script src="{{ url_for('static', filename='script.js') }}"></script>
@@ -13,11 +13,30 @@
     <button id="sign-out" hidden="true">Sign out</button>
     <div id="login-info" hidden="true">
       <h2>Login Info</h2>
-      {% if user_data %}
+      {% if user %}
 
-          <p>Name:  {{ user['profileName'] }}<br/><br>
-              Email: {{ user['email'] }}
-          </p>
+        <p>Name: {{ user['profileName'] }}<br/></p>
+        <p>username: {{ user['username'] }}</p><br/>
+
+
+        {% if follows_user %}
+            <form action="{{ url_for('Unfollow', username=user.username) }}" method="post">
+                <button type="submit" class="btn btn-danger">Unfollow</button>
+            </form>
+        {% else %}
+             <form action="{{ url_for('Follow', username=user.username) }}" method="post">
+                <button type="submit" class="btn btn-primary">Follow</button>
+            </form>
+        {% endif %}
+
+<!--        <form action = "/" method="get">-->
+<!--            <button type="button"> Home</button>-->
+<!--        </form>-->
+
+
+
+
+
 
 
 
@@ -28,8 +47,9 @@
                 {{ i.name }}<input type="submit"/><br/>
             </form>
         {% endfor %}
+
       {% elif error_message %}
-         <p>Error Message: {{ error_message }}</p>
+        <p>Error Message: {{ error_message }}</p>
       {% endif %}
     </div>
 

@@ -17,6 +17,12 @@
           <p>Name:  {{ user_data['name'] }}<br/><br>Email: {{ user_data['email'] }}</p>
 
             <a href="">Following </a>
+        <ul>
+            {% for i in profile_names %}
+            <li>{{ i }}</li>
+        {% endfor %}
+        </ul>
+
 
       {% elif error_message %}
          <p>Error Message: {{ error_message }}</p>

@@ -1,9 +1,9 @@
 import random
-
+from datetime import datetime, timezone
 from google.cloud import datastore, storage
 import google.oauth2.id_token
 from flask import Flask, render_template, request
-from google.auth.transport import requests, Response
+from google.auth.transport import requests
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect
 
@@ -61,12 +61,14 @@ def createPosts(claims, image_file, caption):
     blob.upload_from_file(image_file)
     image_url = blob.public_url
 
+    created_at = datetime.now(timezone.utc)
     entity_key = datastore_client.key('Post', post_id)
     entity = datastore.Entity(key=entity_key)
     entity.update({
         'image': image_url,
         'caption': caption,
-        'comments': []
+        'comments': [],
+        'created_at': created_at
 
     })
     datastore_client.put(entity)
@@ -80,7 +82,10 @@ def retrievePosts(user_info):
     for i in range(len(post_ids)):
         post_keys.append(datastore_client.key('Post', post_ids[i]))
     post_list = datastore_client.get_multi(post_keys)
-    return post_list
+    sorted_posts = sorted(post_list, key=lambda x: x['created_at'], reverse=True)
+
+    return sorted_posts[:50]
+
 
 
 def addPostToUser(user_info, post_id):
@@ -104,22 +109,63 @@ def retrieveFollowing(user_info):
     return following_list
 
 
-def addToFollowing(user_info):
+def addToFollowing(user_info, user_to_follow):
     following_id = user_info['following_list']
-    following_keys = []
-    for i in range(following_id):
-        following_keys.append(datastore_client.key('UserInfo', following_id[i]))
-    following_list = datastore_client.get_multi(following_keys)
+    following_id.append(user_to_follow['email'])
+    user_info.update({
+        'following_list': following_id
+    })
+    datastore_client.put(user_info)
+
+
+def addToFollowers(user_to_follow, user_info):
+    follower_id = user_to_follow['follower_list']
+    follower_id.append(user_info['email'])
+    datastore_client.put(user_to_follow)
+
+
+def removeFromFollower(user_to_unfollow, user_info):
+    follower_list = user_to_unfollow['follower_list']
+    follower_id = user_info['email']
+    if follower_id in follower_list:
+        follower_list.remove(follower_id)
+    user_to_unfollow.update({
+        'follower_list': follower_list
+    })
+    datastore_client.put(user_to_unfollow)
+
+
+def removeFromFollowing(user_to_unfollow, user_info):
+    following_list = user_info['following_list']
+    unfollow_id = user_to_unfollow['email']
+    if unfollow_id in following_list:
+        following_list.remove(unfollow_id)
+    user_info.update({
+        'following_list':following_list
+    })
+    datastore_client.put(user_info)
+
+
+def getEmail(email):
+    query = datastore_client.query(kind='UserInfo')
+    query.add_filter('email', '=', email)
+    user = list(query.fetch())
+    if len(user) == 1:
+        user_dict = dict(user[0])
+        return user_dict
+    else:
+        return None
+
+
+def showFollowers(user_info):
+    follower_list = user_info['follower_list']
+    return follower_list
+
+
+def showFollowing(user_info):
+    following_list = user_info['following_list']
     return following_list
 
-
-def addToFollowers(user):
-    follower_id = user['follower_list']
-    follower_keys = []
-    for i in range(follower_id):
-        follower_keys.append(datastore_client.key('UserInfo', follower_id[i]))
-    follower_list = datastore_client.get_multi(follower_keys)
-    return follower_list
 
 
 @app.route('/follower', methods=['GET', 'POST'])
@@ -127,12 +173,23 @@ def follower():
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
+    follower_list = None
+    profile_names = None
+    username = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
             user_info = retrieveUserInfo(claims)
+            follower_list = showFollowers(user_info)
+            profile_names = []
+
+            for email in follower_list:
+                username = getEmail(email)
+                if username:
+                    profile_names.insert(0, username['profileName'])
             if request.method == 'GET':
-                return render_template("/follower.html", user_data=claims)
+                return render_template("/follower.html", user_data=claims, user_info=user_info,
+                                       follower_list=follower_list, profile_names=profile_names)
 
         except ValueError as exc:
             error_message = str(exc)
@@ -144,12 +201,27 @@ def following():
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
+    following_list = None
+    profile_names = None
+    username = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
             user_info = retrieveUserInfo(claims)
+            following_list = showFollowing(user_info)
+            profile_names = []
+
+            for email in following_list:
+                username = getEmail(email)
+                if username:
+                    profile_names.insert(0, username['profileName'])
+
+                print('following', username)
+
             if request.method == 'GET':
-                return render_template("/following.html", user_data=claims)
+                return render_template("/following.html", user_data=claims, following_list=following_list,
+                                       username=username, profile_names=profile_names)
+
 
         except ValueError as exc:
             error_message = str(exc)
@@ -161,35 +233,70 @@ def Follow(username):
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
+    user = None
+    follows_user = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
 
             user_info = retrieveUserInfo(claims)
+            user = getUsers(username)
+            follows_user = True
             # user = request  # User.query.filter_by(username=username).first()  # come back and check
             query = datastore_client.query(kind='UserInfo')
             query.add_filter('username', '=', username)
-            user = list(query.fetch)
+            result = list(query.fetch(1))
+            user_to_follow = result[0]
 
-            addToFollowing(user_info)
-            addToFollowers(user)
+            # user_to_follow = getUsers(username)
+            print("user", user_to_follow)
+
+            addToFollowing(user_info, user_to_follow)
+            addToFollowers(user_to_follow, user_info)
 
         except ValueError as exc:
             error_message = str(exc)
-    return redirect('/')  # fix later
+    return redirect('/')#fix
+
+
+@app.route('/unfollow/<username>', methods=['POST'])
+def Unfollow(username):
+    id_token = request.cookies.get("token")
+    claims = None
+    user_info = None
+    user = None
+    if id_token:
+        try:
+            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+
+            user_info = retrieveUserInfo(claims)
+            user = getUsers(username)
+            query = datastore_client.query(kind='UserInfo')
+            query.add_filter('username', '=', username)
+            result = list(query.fetch(1))
+            user_to_unfollow = result[0]
+            removeFromFollower(user_to_unfollow, user_info)
+            removeFromFollowing(user_to_unfollow, user_info)
+        except ValueError as exc:
+            error_message = str(exc)
+    return render_template('user_page.html', username=username, user=user)
 
 
 def getUsers(username):
     query = datastore_client.query(kind='UserInfo')
     query.add_filter('username', '=', username)
-    users = list(query.fetch())
-    return users
+    user = list(query.fetch(1))
+    if len(user) == 1:
+        return dict(user[0])
+    else:
+        return None
+
 
 
 def getProfiles(profile_Name):
     query = datastore_client.query(kind='UserInfo')
     query.add_filter('profileName', '>=', profile_Name)
-    query.add_filter('profileName', '<', profile_Name + '\ufffd')
+    query.add_filter('profileName', '<', profile_Name + '\ufffd')#adjust
     users = list(query.fetch())
     return users
 
@@ -208,6 +315,7 @@ def search():
             if request.method == 'POST':
                 profile_Name = request.form['profileName']
                 users = getProfiles(profile_Name)
+                print(users)
                 return render_template('search.html', users=users, user_data=claims)
 
         except ValueError as exc:
@@ -220,7 +328,9 @@ def searchUser(username):
     id_token = request.cookies.get("token")
     claims = None
     user_info = None
+    follows_user = None
     user = None
+    error_message = None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
@@ -228,11 +338,15 @@ def searchUser(username):
             user_info = retrieveUserInfo(claims)
 
             user = getUsers(username)
+            follows_user = user_info['email'] in user['follower_list']
+            print(follows_user)
+            print(user)
             if not user:
                 abort(404)
         except ValueError as exc:
             error_message = str(exc)
-    return render_template('user_page.html', user=user, user_data=claims)
+    return render_template('user_page.html', user=user, user_data=claims, follows_user=follows_user,
+                           error_message=error_message)
 
 
 # uploads
@@ -254,13 +368,6 @@ def addFile(file):
     bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
     blob = bucket.blob(file.filename)
     blob.upload_from_file(file)
-
-
-def downloadBlob(filename):
-    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
-    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
-    blob = bucket.blob(filename)
-    return blob.download_as_bytes()
 
 
 @app.route('/upload_file', methods=['post'])
@@ -291,23 +398,6 @@ def uploadFileHandler():
         except ValueError as exc:
             error_message = str(exc)
     return redirect('/')
-
-
-@app.route('/download_file/<string:filename>', methods=['POST'])
-def downloadFile(filename):
-    id_token = request.cookies.get("token")
-    error_message = None
-    claims = None
-    times = None
-    user_info = None
-    file_bytes = None
-    if id_token:
-        try:
-            claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-        except ValueError as exc:
-            error_message = str(exc)
-
-    return Response(downloadBlob(filename), mimetype='application/octet-stream')
 
 
 @app.route('/init', methods=['GET', 'POST'])
@@ -355,6 +445,9 @@ def root():
     directory_list = []
     following_no = None
     follower_no = None
+    follower_list = None
+    following_list =None
+
 
     if id_token:
         try:
@@ -377,13 +470,15 @@ def root():
             post = retrievePosts(user_info)
             following_no = retrieveFollowing(user_info)
             follower_no = retrieveFollowers(user_info)
-            print(post)
+            follower_list = showFollowers(user_info)
+            following_list = showFollowing(user_info)
+            print()
         except ValueError as exc:
             error_message = str(exc)
             print(error_message)
     return render_template('test.html', user_data=claims, error_message=error_message, post=post,
                            user_info=user_info, username=username, file_list=file_list, directory_list=directory_list,
-                           following_no=following_no, follower_no=follower_no)
+                           following_no=following_no, follower_no=follower_no, following_list=following_list, follower_list=follower_list)
 
 
 if __name__ == '__main__':
