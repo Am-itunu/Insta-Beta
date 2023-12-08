@@ -6,6 +6,14 @@
  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css" />
  <script src="{{ url_for('static', filename='script.js') }}"></script>
  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+ <style>
+     img{
+      border: 1px solid #ddd;
+      border-radius: 88px;
+      padding: 150px;
+      width: 30%;
+      }
+ </style>
 </head>
 <body>
  <h1>{{ user['profileName'] }} </h1>
@@ -21,31 +29,21 @@
 
         {% if follows_user %}
             <form action="{{ url_for('Unfollow', username=user.username) }}" method="post">
-                <button type="submit" class="btn btn-danger">Unfollow</button>
-            </form>
+                <button type="submit" class="">Unfollow</button>
+            </form><br/>
         {% else %}
              <form action="{{ url_for('Follow', username=user.username) }}" method="post">
-                <button type="submit" class="btn btn-primary">Follow</button>
-            </form>
+                <button type="submit" class="">Follow</button>
+            </form><br/>
         {% endif %}
 
-<!--        <form action = "/" method="get">-->
-<!--            <button type="button"> Home</button>-->
-<!--        </form>-->
+        <br><form action="{{ url_for('root') }}" method="get">
+                <button>Home</button>
+            </form><br/>
 
-
-
-
-
-
-
-
-        <h1>list of files</h1><br/>
-        {% for i in file_list %}
-
-            <form action="/download_file/{{ i.name }}" method="post">
-                {{ i.name }}<input type="submit"/><br/>
-            </form>
+        {% for i in post %}
+            <img src="{{i.image}}" alt="{{i.caption}}"><br>
+            caption: {{i.caption}}<br><br><br>
         {% endfor %}
 
       {% elif error_message %}

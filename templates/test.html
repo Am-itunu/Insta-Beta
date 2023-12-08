@@ -48,6 +48,9 @@
         {% for i in post %}
             <img src="{{i.image}}" alt="{{i.caption}}"><br>
             caption: {{i.caption}}<br><br><br>
+            {% for comment in comments %}
+                <p>Comments: <input>{{ comment[:200] }}{{ '...' if len(comment) > 200 else '' }}</p>
+            {% endfor %}
         {% endfor %}
       {% elif error_message %}
          <p>Error Message: {{ error_message }}</p>

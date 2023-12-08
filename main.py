@@ -87,6 +87,17 @@ def retrievePosts(user_info):
     return sorted_posts[:50]
 
 
+def retrieveUserPosts(user):
+    # make key objects out of all the keys and retrieve them
+    post_ids = user['post_list']
+    post_keys = []
+    for i in range(len(post_ids)):
+        post_keys.append(datastore_client.key('Post', post_ids[i]))
+    post_list = datastore_client.get_multi(post_keys)
+    sorted_posts = sorted(post_list, key=lambda x: x['created_at'], reverse=True)
+
+    return sorted_posts[:50]
+
 
 def addPostToUser(user_info, post_id):
     post_key = user_info['post_list']
@@ -95,6 +106,53 @@ def addPostToUser(user_info, post_id):
         'post_list': post_key
     })
     datastore_client.put(user_info)
+
+
+def createComment(post_id, username, text):
+    entity_key = datastore_client.key('Comment')
+    entity = datastore.Entity(key=entity_key)
+    entity.update({
+        'username': username,
+        'content': text,
+        'timestamp':datetime.now(),
+        'post_id': post_id
+    })
+    datastore_client.put(entity)
+
+
+# not used
+def getPost(post_id):
+    query = datastore_client.query(kind='Post')
+    query.add_filter('id', '=', post_id)
+    post = list(query.fetch(1))
+    if len(post) == 1:
+        return dict(post[0])
+    else:
+        return None
+
+
+
+def getComment(post_id):
+    query = datastore_client.query(kind='Comment')
+    query.add_filter('post_id', '=', post_id)
+    comments = list(query.fetch())
+    return [dict(comment) for comment in comments]
+
+
+#not used
+@app.route('/post/<post_id>')
+def show_post(post_id):
+    post = getPost(post_id)
+    comments = getComment(post_id)
+    return render_template('post.html', post=post, comments=comments)
+
+
+@app.route('/post/<post_id>/comment', methods=['POST'])
+def add_comment(post_id):
+    username = request.form['username']
+    text = request.form['yext']
+    createComment(post_id, username, text)
+    return redirect('/')
 
 
 def retrieveFollowers(user_info):
@@ -121,6 +179,9 @@ def addToFollowing(user_info, user_to_follow):
 def addToFollowers(user_to_follow, user_info):
     follower_id = user_to_follow['follower_list']
     follower_id.append(user_info['email'])
+    user_to_follow.update({
+        'following_list': follower_id
+    })
     datastore_client.put(user_to_follow)
 
 
@@ -165,7 +226,6 @@ def showFollowers(user_info):
 def showFollowing(user_info):
     following_list = user_info['following_list']
     return following_list
-
 
 
 @app.route('/follower', methods=['GET', 'POST'])
@@ -222,7 +282,6 @@ def following():
                 return render_template("/following.html", user_data=claims, following_list=following_list,
                                        username=username, profile_names=profile_names)
 
-
         except ValueError as exc:
             error_message = str(exc)
     return redirect('/')
@@ -265,12 +324,15 @@ def Unfollow(username):
     claims = None
     user_info = None
     user = None
+    post=None
     if id_token:
         try:
             claims = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
 
             user_info = retrieveUserInfo(claims)
             user = getUsers(username)
+            post = retrieveUserPosts(user)
+
             query = datastore_client.query(kind='UserInfo')
             query.add_filter('username', '=', username)
             result = list(query.fetch(1))
@@ -279,7 +341,7 @@ def Unfollow(username):
             removeFromFollowing(user_to_unfollow, user_info)
         except ValueError as exc:
             error_message = str(exc)
-    return render_template('user_page.html', username=username, user=user)
+    return render_template('user_page.html', username=username, user=user, post=post)
 
 
 def getUsers(username):
@@ -330,6 +392,7 @@ def searchUser(username):
     user_info = None
     follows_user = None
     user = None
+    post=None
     error_message = None
     if id_token:
         try:
@@ -338,6 +401,7 @@ def searchUser(username):
             user_info = retrieveUserInfo(claims)
 
             user = getUsers(username)
+            post = retrieveUserPosts(user)
             follows_user = user_info['email'] in user['follower_list']
             print(follows_user)
             print(user)
@@ -345,8 +409,8 @@ def searchUser(username):
                 abort(404)
         except ValueError as exc:
             error_message = str(exc)
-    return render_template('user_page.html', user=user, user_data=claims, follows_user=follows_user,
-                           error_message=error_message)
+    return render_template('user_page.html', user=user, user_data=claims, post=post ,follows_user=follows_user,
+                           error_message=error_message )
 
 
 # uploads
@@ -355,19 +419,19 @@ def blobList(prefix):
 
     return storage_client.list_blobs(local_constants.PROJECT_STORAGE_BUCKET, prefix=prefix)
 
+#
+# def addDirectory(directory_name):
+#     storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+#     bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+#     blob = bucket.blob(directory_name)
+#     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
 
-def addDirectory(directory_name):
-    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
-    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
-    blob = bucket.blob(directory_name)
-    blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
 
-
-def addFile(file):
-    storage_client = storage.Client(project=local_constants.PROJECT_NAME)
-    bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
-    blob = bucket.blob(file.filename)
-    blob.upload_from_file(file)
+# def addFile(file):
+#     storage_client = storage.Client(project=local_constants.PROJECT_NAME)
+#     bucket = storage_client.bucket(local_constants.PROJECT_STORAGE_BUCKET)
+#     blob = bucket.blob(file.filename)
+#     blob.upload_from_file(file)
 
 
 @app.route('/upload_file', methods=['post'])

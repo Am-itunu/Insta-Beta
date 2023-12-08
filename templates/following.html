@@ -14,9 +14,13 @@
     <div id="login-info" hidden="true">
       <h2>Login Info</h2>
       {% if user_data %}
+        <br><form action="{{ url_for('root') }}" method="get">
+                <button>Home</button>
+            </form><br/>
+
           <p>Name:  {{ user_data['name'] }}<br/><br>Email: {{ user_data['email'] }}</p>
 
-            <a href="">Following </a>
+            <p>Following </p>
         <ul>
             {% for i in profile_names %}
             <li>{{ i }}</li>

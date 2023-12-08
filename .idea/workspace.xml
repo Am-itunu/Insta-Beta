@@ -9,6 +9,7 @@
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/follower.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/follower.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/following.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/following.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/search.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/search.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/test.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/test.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user_page.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user_page.html" afterDir="false" />
     </list>
@@ -37,14 +38,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "D:/PROGRAMMING/CPA/Assignment3",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/PROGRAMMING/CPA/Assignment3&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Assignment3" />
@@ -127,7 +128,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683384588865</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="fixed follower and ffollowing html issues">
+      <created>1683483763119</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1683483763119</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -161,7 +169,8 @@
     <MESSAGE value="searchbar initial commit" />
     <MESSAGE value="linked search results to user page" />
     <MESSAGE value="fixed image display issues" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed image display issues" />
+    <MESSAGE value="fixed follower and ffollowing html issues" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed follower and ffollowing html issues" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -173,7 +182,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/main.py</url>
-          <line>421</line>
+          <line>485</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
