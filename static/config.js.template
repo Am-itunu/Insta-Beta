@@ -1,0 +1,9 @@
+// config.js.template
+
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY || 'YOUR_API_KEY',
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'YOUR_AUTH_DOMAIN',
+  // ...
+};
+
+export default firebaseConfig;
